@@ -1,4 +1,4 @@
-- name: Ping dynamic inventory hosts
+- name: Configure httpd on EC2 instances
   hosts: all
   gather_facts: false
   tasks:
