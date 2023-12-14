@@ -1,0 +1,16 @@
+- name: Set up Helm
+  hosts: master
+  gather_facts: false
+  become: true
+  tasks:
+
+    - name: Download Helm install script
+      ansible.builtin.get_url: 
+        url: https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+        dest: /tmp
+        mode: a+x
+
+    - name: Execute Helm script
+      ansible.builtin.shell: >-
+        /home/pi/get_helm.sh
+        
