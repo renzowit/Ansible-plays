@@ -1,0 +1,83 @@
+- name: Create AWS VPC with a public subnet
+  hosts: ansible
+  vars:
+    aws_region: us-east-1
+  gather_facts: false
+  tasks:
+
+  - name: Create a VPC with dedicated tenancy and a couple of tags
+    amazon.aws.ec2_vpc_net:
+      name: ansible_VPC
+      cidr_block: 10.10.0.0/16
+      region: "{{ aws_region }}"
+      tenancy: default
+    register: ansible_VPC
+
+  - name: Create an IGW and associate to the VPC
+    amazon.aws.ec2_vpc_igw:
+      vpc_id: "{{ ansible_VPC.vpc.id }}"
+      region: "{{ aws_region }}"
+      state: present
+      tags:
+        name: ansible_IGW
+    register: ansible_IGW
+
+  - name: Create subnet in VPC
+    amazon.aws.ec2_vpc_subnet:
+      state: present
+      vpc_id: "{{ ansible_VPC.vpc.id }}"
+      cidr: 10.10.1.0/24
+      region: "{{ aws_region }}"
+      tags:
+        Name: ansible_subnet
+    register: ansible_subnet
+
+  - name: Setup public route
+    amazon.aws.ec2_vpc_route_table:
+      vpc_id: "{{ ansible_VPC.vpc.id }}"
+      region: "{{ aws_region }}"
+      subnets:
+        - "{{ ansible_subnet.subnet.id }}"
+      routes:
+        - dest: 0.0.0.0/0
+          gateway_id: "{{ ansible_IGW.gateway_id }}"
+
+  - name: Create security group
+    amazon.aws.ec2_group:
+      name: ansible_SG
+      description: Security group voor SSH toegang
+      vpc_id: "{{ ansible_VPC.vpc.id }}"
+      region: "{{ aws_region }}"
+      rules:
+        - proto: tcp
+          ports:
+            - 22
+          cidr_ip: 0.0.0.0/0
+          rule_desc: Allow alle SSH connecties
+        - proto: tcp
+          ports:
+            - 80
+          cidr_ip: 0.0.0.0/0
+          rule_desc: Allow alle http connecties
+
+  - name: Create instance
+    amazon.aws.ec2_instance:
+      region: "{{ aws_region }}"
+      key_name: vockey
+      instance_type: t2.nano
+      image_id: ami-0230bd60aa48260c6
+      wait: yes
+      security_group: ansible_SG
+      count: 1
+      vpc_subnet_id: "{{ ansible_subnet.subnet.id }}"
+      network:
+        assign_public_ip: true
+    register: ec2
+    tags:
+      - create
+      - info
+
+  - name: information
+    debug:
+      msg: "{{ item.public_ip_address }}"
+    loop: "{{ ec2.instances }}"

@@ -1,0 +1,16 @@
+- name: Ping dynamic inventory hosts
+  hosts: all
+  gather_facts: false
+  tasks:
+
+    - name: Install httpd on instance
+      ansible.builtin.yum:
+        name: httpd
+        state: latest
+
+    - name: Start httpd service
+      ansible.builtin.service:
+        name: httpd
+        state: started
+        
+
