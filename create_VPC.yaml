@@ -64,7 +64,7 @@
     amazon.aws.ec2_instance:
       region: "{{ aws_region }}"
       key_name: vockey
-      instance_type: t2.nano
+      instance_type: t2.medium
       image_id: ami-0230bd60aa48260c6
       wait: yes
       security_group: ansible_SG
